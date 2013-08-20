@@ -57,6 +57,10 @@ PRODUCT_COPY_FILES += \
 	device/samsung/aries-common/ueventd.aries.rc:root/ueventd.aries.rc \
 	device/samsung/aries-common/setupdatadata.sh:root/sbin/setupdatadata.sh
 
+# Product specific Packages
+PRODUCT_PACKAGES += \
+    SamsungServiceMode
+
 # Prebuilt kl keymaps
 PRODUCT_COPY_FILES += \
 	device/samsung/aries-common/cypress-touchkey.kl:system/usr/keylayout/cypress-touchkey.kl \
