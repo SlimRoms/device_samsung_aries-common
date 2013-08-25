@@ -6,7 +6,13 @@
 #
 
 check_mount() {
-    MOUNT_POINT=`/tmp/busybox readlink -f $1`
+    local MOUNT_POINT=`/tmp/busybox readlink -f $1`
+    if ! /tmp/busybox test -n "$MOUNT_POINT" ; then
+        # readlink does not work on older recoveries for some reason
+        # doesn't matter since the path is already correct in that case
+        /tmp/busybox echo "Using non-readlink mount point $1"
+        MOUNT_POINT=$1
+    fi
     if ! /tmp/busybox grep -q $MOUNT_POINT /proc/mounts ; then
         /tmp/busybox mkdir -p $MOUNT_POINT
         /tmp/busybox umount -l $2
@@ -20,6 +26,43 @@ check_mount() {
 set_log() {
     rm -rf $1
     exec >> $1 2>&1
+}
+
+warn_repartition() {
+    if ! /tmp/busybox test -e /.accept_wipe ; then
+        /tmp/busybox touch /.accept_wipe
+        ui_print
+        ui_print "============================================"
+        ui_print "This ROM uses an incompatible partition layout"
+        ui_print "Your /data will be wiped upon installation"
+        ui_print "Run this update.zip again to confirm install"
+        ui_print "============================================"
+        ui_print
+        exit 9
+    fi
+    /tmp/busybox rm /.accept_wipe
+}
+
+format_partitions() {
+    /lvm/sbin/lvm lvcreate -L ${SYSTEM_SIZE}B -n system lvpool
+    /lvm/sbin/lvm lvcreate -l 100%FREE -n userdata lvpool
+
+    # format data (/system will be formatted by updater-script)
+    /tmp/make_ext4fs -b 4096 -g 32768 -i 8192 -I 256 -l -16384 -a /data /dev/lvpool/userdata
+
+    # unmount and format datadata
+    /tmp/busybox umount -l /datadata
+    /tmp/erase_image datadata
+}
+
+fix_package_location() {
+    local PACKAGE_LOCATION=$1
+    # Remove leading /mnt for Samsung recovery
+    PACKAGE_LOCATION=${PACKAGE_LOCATION#/mnt}
+    # Convert to modern sdcard path
+    PACKAGE_LOCATION=`echo $PACKAGE_LOCATION | /tmp/busybox sed -e "s|^/sdcard|/storage/sdcard0|"`
+    PACKAGE_LOCATION=`echo $PACKAGE_LOCATION | /tmp/busybox sed -e "s|^/emmc|/storage/sdcard1|"`
+    echo $PACKAGE_LOCATION
 }
 
 # ui_print by Chainfire
@@ -83,8 +126,7 @@ if /tmp/busybox test -e /dev/block/bml7 ; then
 
     # write the package path to sdcard cyanogenmod.cfg
     if /tmp/busybox test -n "$UPDATE_PACKAGE" ; then
-        PACKAGE_LOCATION=${UPDATE_PACKAGE#/mnt}
-        /tmp/busybox echo "$PACKAGE_LOCATION" > /mnt/sdcard/cyanogenmod.cfg
+        /tmp/busybox echo `fix_package_location $UPDATE_PACKAGE` > /mnt/sdcard/cyanogenmod.cfg
     fi
 
     # Scorch any ROM Manager settings to require the user to reflash recovery
@@ -125,7 +167,7 @@ elif /tmp/busybox test `/tmp/busybox cat /sys/class/mtd/mtd2/size` != "$MTD_SIZE
 
     # write the package path to sdcard cyanogenmod.cfg
     if /tmp/busybox test -n "$UPDATE_PACKAGE" ; then
-        /tmp/busybox echo "$UPDATE_PACKAGE" > /sdcard/cyanogenmod.cfg
+        /tmp/busybox echo `fix_package_location $UPDATE_PACKAGE` > /sdcard/cyanogenmod.cfg
     fi
 
     # inform the script that this is an old mtd upgrade
