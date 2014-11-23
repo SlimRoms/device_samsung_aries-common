@@ -44,6 +44,12 @@
   <string name="deskdock_audio_title_head">Audio de escritorio</string>
   <string name="deskdock_audio_summary_on">Conector de audio de escritorio habilitado</string>
   <string name="deskdock_audio_summary_off">Conector de audio de escritorio deshabilitado</string>
+  <string name="category_vibration_title">Vibración</string>
+  <string name="vibration_title_head">Vibración</string>
+  <string name="vibration_summary_head">Control intensidad de vibración</string>
+  <string name="vibration_title">Intensidad de la vibración</string>
+  <string name="vibration_test_title">Prueba</string>
+  <string name="button_reset_title">Restablecer</string>
   <string name="generic_warning_title">Aviso</string>
   <string name="imei_not_sane_title">¡Aviso!</string>
   <string name="imei_not_sane_message">Se ha detectado un problema en su dispositivo. El número IMEI de su dispositivo es invalido. Un número IMEI invalido puede causar problemas de red, incluyendo la imposibilidad de realizar llamadas a números de emergencia.</string>
